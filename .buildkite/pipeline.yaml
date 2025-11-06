@@ -1,0 +1,6 @@
+steps:
+  - label: ":zzz: Trigger the non-Bazel pipeline"
+    trigger: bazel-lunch-and-learn-non-bazel
+
+  - label: ":bazel: Trigger the Bazel pipeline"
+    trigger: bazel-lunch-and-learn-bazel

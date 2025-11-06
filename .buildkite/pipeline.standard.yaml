@@ -1,0 +1,93 @@
+## Traditional Pipeline (WITHOUT Bazel)
+## This demonstrates a standard Go build process without Bazel's intelligence
+
+steps:
+  - label: ":golang: Setup"
+    command: |
+      echo "--- :golang: Go version"
+      go version
+
+      echo "--- :package: Project structure"
+      find services lib -name "*.go" | head -10
+
+  - wait: ~
+
+  - label: ":test_tube: Test Utils Library"
+    key: test_utils
+    command: |
+      echo "Testing lib/utils..."
+      cd lib/utils
+      go test -v ./...
+
+  - label: ":test_tube: Test Hello Service"
+    key: test_hello
+    command: |
+      echo "Testing services/hello..."
+      cd services/hello
+      go test -v ./...
+
+  - label: ":test_tube: Test Goodbye Service"
+    key: test_goodbye
+    command: |
+      echo "Testing services/goodbye..."
+      cd services/goodbye
+      go test -v ./...
+
+  - label: ":package: Build Hello Service"
+    key: build_hello
+    depends_on: test_hello
+    command: |
+      echo "Building services/hello..."
+      cd services/hello
+      go build -o hello
+      ls -lh hello
+
+  - label: ":package: Build Goodbye Service"
+    key: build_goodbye
+    depends_on: test_goodbye
+    command: |
+      echo "Building services/goodbye..."
+      cd services/goodbye
+      go build -o goodbye
+      ls -lh goodbye
+
+  - label: ":rocket: Run Hello Service"
+    key: run_hello
+    depends_on: build_hello
+    command: |
+      echo "Running hello service..."
+      cd services/hello
+      go build -o hello
+      ./hello
+
+  - label: ":rocket: Run Goodbye Service"
+    key: run_goodbye
+    depends_on: build_goodbye
+    command: |
+      echo "Running goodbye service..."
+      cd services/goodbye
+      go build -o goodbye
+      ./goodbye
+
+  - wait: ~
+
+  - label: ":memo: Summary"
+    command: |
+      cat <<EOF | buildkite-agent annotate --style info --context summary
+      ## Traditional Build Summary
+
+      ### What Happened
+      - ✅ Tested all packages manually (3 test steps)
+      - ✅ Built all services manually (2 build steps)
+      - ✅ Ran all services
+
+      ### Problems with This Approach
+      - ❌ **No caching**: Every build starts from scratch
+      - ❌ **No dependency awareness**: Can't tell what's affected by changes
+      - ❌ **Manual maintenance**: Adding a new service means updating the pipeline
+      - ❌ **Runs everything**: Even if only one file changed
+      - ❌ **No incremental builds**: Rebuilds everything every time
+
+      ---
+      💡 **See pipeline.bazel.yaml for the Bazel approach!**
+      EOF
