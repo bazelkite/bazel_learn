@@ -6,14 +6,14 @@ steps:
     command: |
       cat <<EOF | buildkite-agent annotate --style info --context welcome
       # 🎯 Bazel Knowledge Quiz
-      
+
       Test your Bazel skills with 5 multiple choice questions!
-      
+
       Each question will:
       1. Ask you to choose the correct Bazel command
       2. Run your choice to see if it works
       3. Show you the results
-      
+
       Let's see how well you know Bazel!
       EOF
 
@@ -23,7 +23,7 @@ steps:
   - block: ":one: Question 1: Testing Targets"
     prompt: |
       How would you test all Go test targets?
-      
+
       Command: bazel ___ "kind('.*_test', //...)"
     fields:
       - select: "Choose the correct Bazel command"
@@ -42,48 +42,19 @@ steps:
   - label: ":test_tube: Running your answer for Q1"
     command: |
       echo "--- Your answer: bazel $(buildkite-agent meta-data get q1-answer) \"kind('.*_test', //...)\""
-      
-      ANSWER=$(buildkite-agent meta-data get q1-answer)
-      
-      if [[ "$$ANSWER" == "test" ]]; then
-        echo "Running: bazel test \"kind('.*_test', //...)\""
-        bazel test "kind('.*_test', //...)" --test_output=errors
-        
-        cat <<EOF | buildkite-agent annotate --style success --context q1
-        ## Question 1: ✅ Correct!
-        
-        \`bazel test\` is the correct command to run tests.
-        
-        The \`kind('.*_test', //...)\` query finds all test targets, and \`bazel test\` executes them.
-        EOF
-      else
-        echo "Running: bazel $$ANSWER \"kind('.*_test', //...)\""
-        if bazel $$ANSWER "kind('.*_test', //...)" 2>&1; then
-          cat <<EOF | buildkite-agent annotate --style warning --context q1
-        ## Question 1: ⚠️ Not quite right
-        
-        You chose \`bazel $$ANSWER\`, which ran without error, but:
-        - \`bazel test\` is the correct command for running tests
-        - \`bazel $$ANSWER\` does something different
-        EOF
-        else
-          cat <<EOF | buildkite-agent annotate --style error --context q1
-        ## Question 1: ❌ Incorrect
-        
-        You chose \`bazel $$ANSWER\`, which failed because:
-        - The correct command is \`bazel test\` for running tests
-        - \`bazel $$ANSWER\` doesn't work with test targets this way
-        EOF
-        fi
-      fi
 
-  - wait
+      ANSWER=$(buildkite-agent meta-data get q1-answer)
+
+      echo "Running: bazel ${ANSWER} \"kind('.*_test', //...)\""
+      bazel ${ANSWER} "kind('.*_test', //...)" --test_output=errors
+
+  - wait: ~
 
   # Question 2
   - block: ":two: Question 2: Running Binaries"
     prompt: |
       How would you execute the hello service?
-      
+
       Command: bazel ___ //services/hello:hello
     fields:
       - select: "Choose the correct Bazel command"
@@ -102,48 +73,19 @@ steps:
   - label: ":rocket: Running your answer for Q2"
     command: |
       echo "--- Your answer: bazel $(buildkite-agent meta-data get q2-answer) //services/hello:hello"
-      
-      ANSWER=$(buildkite-agent meta-data get q2-answer)
-      
-      if [[ "$$ANSWER" == "run" ]]; then
-        echo "Running: bazel run //services/hello:hello"
-        bazel run //services/hello:hello
-        
-        cat <<EOF | buildkite-agent annotate --style success --context q2
-        ## Question 2: ✅ Correct!
-        
-        \`bazel run\` is used to build and execute binary targets.
-        
-        It builds the target and then runs the resulting executable.
-        EOF
-      else
-        echo "Running: bazel $$ANSWER //services/hello:hello"
-        if bazel $$ANSWER //services/hello:hello 2>&1; then
-          cat <<EOF | buildkite-agent annotate --style warning --context q2
-        ## Question 2: ⚠️ Partially correct
-        
-        You chose \`bazel $$ANSWER\`, which worked, but:
-        - \`bazel run\` is the command that builds AND executes the binary
-        - \`bazel $$ANSWER\` doesn't execute the program
-        EOF
-        else
-          cat <<EOF | buildkite-agent annotate --style error --context q2
-        ## Question 2: ❌ Incorrect
-        
-        You chose \`bazel $$ANSWER\`, which failed because:
-        - The correct command is \`bazel run\` to execute binaries
-        - \`bazel $$ANSWER\` is not a valid Bazel command
-        EOF
-        fi
-      fi
 
-  - wait
+      ANSWER=$(buildkite-agent meta-data get q2-answer)
+
+      echo "Running: bazel ${ANSWER} //services/hello:hello"
+      bazel ${ANSWER} //services/hello:hello
+
+  - wait: ~
 
   # Question 3
   - block: ":three: Question 3: Finding Dependencies"
     prompt: |
       How would you find what the hello service depends on?
-      
+
       Command: bazel query "_____(//services/hello:hello)"
     fields:
       - select: "Choose the correct query function"
@@ -162,59 +104,19 @@ steps:
   - label: ":mag: Running your answer for Q3"
     command: |
       echo "--- Your answer: bazel query \"$(buildkite-agent meta-data get q3-answer)(//services/hello:hello)\""
-      
-      ANSWER=$(buildkite-agent meta-data get q3-answer)
-      
-      if [[ "$$ANSWER" == "deps" ]]; then
-        echo "Running: bazel query \"deps(//services/hello:hello)\""
-        bazel query "deps(//services/hello:hello)"
-        
-        cat <<EOF | buildkite-agent annotate --style success --context q3
-        ## Question 3: ✅ Correct!
-        
-        \`deps()\` shows all dependencies of a target.
-        
-        This is useful for understanding what a target needs to build.
-        EOF
-      elif [[ "$$ANSWER" == "rdeps" ]]; then
-        echo "Running: bazel query \"rdeps(//..., //services/hello:hello)\""
-        bazel query "rdeps(//..., //services/hello:hello)"
-        
-        cat <<EOF | buildkite-agent annotate --style warning --context q3
-        ## Question 3: ⚠️ Close, but not quite!
-        
-        You chose \`rdeps()\` which shows **reverse** dependencies (what depends on this target).
-        
-        The correct answer is \`deps()\` which shows what this target depends on.
-        EOF
-      else
-        echo "Running: bazel query \"$$ANSWER(//services/hello:hello)\""
-        if bazel query "$$ANSWER(//services/hello:hello)" 2>&1; then
-          cat <<EOF | buildkite-agent annotate --style warning --context q3
-        ## Question 3: ⚠️ Not the right function
-        
-        You chose \`$$ANSWER()\`, which is a valid query function but:
-        - \`deps()\` is the correct function to find dependencies
-        - \`$$ANSWER()\` serves a different purpose
-        EOF
-        else
-          cat <<EOF | buildkite-agent annotate --style error --context q3
-        ## Question 3: ❌ Incorrect
-        
-        You chose \`$$ANSWER()\`, which failed because:
-        - The correct function is \`deps()\` to find what a target depends on
-        - \`$$ANSWER()\` doesn't work with a single target like this
-        EOF
-        fi
-      fi
 
-  - wait
+      ANSWER=$(buildkite-agent meta-data get q3-answer)
+
+      echo "Running: bazel ${ANSWER} \"deps(//services/hello:hello)\""
+      bazel ${ANSWER} "deps(//services/hello:hello)"
+
+  - wait: ~
 
   # Question 4
   - block: ":four: Question 4: Impact Analysis"
     prompt: |
       If you change lib/utils, how do you find what's affected?
-      
+
       Command: bazel query "_____(//..., //lib/utils:utils)"
     fields:
       - select: "Choose the correct query function"
@@ -233,59 +135,19 @@ steps:
   - label: ":chart_with_upwards_trend: Running your answer for Q4"
     command: |
       echo "--- Your answer: bazel query \"$(buildkite-agent meta-data get q4-answer)(//..., //lib/utils:utils)\""
-      
-      ANSWER=$(buildkite-agent meta-data get q4-answer)
-      
-      if [[ "$$ANSWER" == "rdeps" ]]; then
-        echo "Running: bazel query \"rdeps(//..., //lib/utils:utils)\""
-        bazel query "rdeps(//..., //lib/utils:utils)"
-        
-        cat <<EOF | buildkite-agent annotate --style success --context q4
-        ## Question 4: ✅ Correct!
-        
-        \`rdeps()\` shows reverse dependencies - what depends on a target.
-        
-        This is crucial for impact analysis: if you change X, what else is affected?
-        EOF
-      elif [[ "$$ANSWER" == "deps" ]]; then
-        echo "Running: bazel query \"deps(//lib/utils:utils)\""
-        bazel query "deps(//lib/utils:utils)"
-        
-        cat <<EOF | buildkite-agent annotate --style warning --context q4
-        ## Question 4: ⚠️ Wrong direction!
-        
-        You chose \`deps()\` which shows what //lib/utils depends on (its dependencies).
-        
-        The correct answer is \`rdeps()\` which shows what depends on //lib/utils (reverse dependencies).
-        EOF
-      else
-        echo "Running: bazel query \"$$ANSWER(//..., //lib/utils:utils)\""
-        if bazel query "$$ANSWER(//..., //lib/utils:utils)" 2>&1; then
-          cat <<EOF | buildkite-agent annotate --style warning --context q4
-        ## Question 4: ⚠️ Not quite right
-        
-        You chose \`$$ANSWER()\`, which works but:
-        - \`rdeps()\` is the correct function for finding what depends on a target
-        - \`$$ANSWER()\` does something different
-        EOF
-        else
-          cat <<EOF | buildkite-agent annotate --style error --context q4
-        ## Question 4: ❌ Incorrect
-        
-        You chose \`$$ANSWER()\`, which failed.
-        
-        The correct answer is \`rdeps()\` for reverse dependencies (impact analysis).
-        EOF
-        fi
-      fi
 
-  - wait
+      ANSWER=$(buildkite-agent meta-data get q4-answer)
+
+      echo "Running: bazel ${ANSWER} \"deps(//lib/utils:utils)\""
+      bazel ${ANSWER} "deps(//lib/utils:utils)"
+
+  - wait: ~
 
   # Question 5
   - block: ":five: Question 5: Selective Testing"
     prompt: |
       How do you find ONLY the tests affected by changes to lib/utils?
-      
+
       Command: bazel query "kind('.*_test', _____(//..., //lib/utils:utils))"
     fields:
       - select: "Choose the correct query function"
@@ -304,82 +166,48 @@ steps:
   - label: ":dart: Running your answer for Q5"
     command: |
       echo "--- Your answer: bazel query \"kind('.*_test', $(buildkite-agent meta-data get q5-answer)(//..., //lib/utils:utils))\""
-      
-      ANSWER=$(buildkite-agent meta-data get q5-answer)
-      
-      if [[ "$$ANSWER" == "rdeps" ]]; then
-        echo "Running: bazel query \"kind('.*_test', rdeps(//..., //lib/utils:utils))\""
-        bazel query "kind('.*_test', rdeps(//..., //lib/utils:utils))"
-        
-        cat <<EOF | buildkite-agent annotate --style success --context q5
-        ## Question 5: ✅ Correct!
-        
-        Combining \`kind()\` with \`rdeps()\` gives you selective testing!
-        
-        This finds all tests that depend on lib/utils, so you only run affected tests.
-        This is the foundation of smart CI/CD pipelines.
-        EOF
-      else
-        echo "Running: bazel query \"kind('.*_test', $$ANSWER(//..., //lib/utils:utils))\""
-        if bazel query "kind('.*_test', $$ANSWER(//..., //lib/utils:utils))" 2>&1; then
-          cat <<EOF | buildkite-agent annotate --style warning --context q5
-        ## Question 5: ⚠️ Not quite right
-        
-        You chose \`$$ANSWER()\`, which ran but:
-        - The correct answer is \`rdeps()\` to find what depends on lib/utils
-        - Then \`kind()\` filters to just tests
-        - This combination enables selective testing in CI/CD
-        EOF
-        else
-          cat <<EOF | buildkite-agent annotate --style error --context q5
-        ## Question 5: ❌ Incorrect
-        
-        You chose \`$$ANSWER()\`, which failed.
-        
-        The correct answer is \`rdeps()\` combined with \`kind()\`:
-        - \`rdeps(//..., //lib/utils:utils)\` finds what depends on utils
-        - \`kind('.*_test', ...)\` filters to only tests
-        - Result: only run tests affected by changes!
-        EOF
-        fi
-      fi
 
-  - wait
+      ANSWER=$(buildkite-agent meta-data get q5-answer)
+
+      echo "Running: bazel ${ANSWER} \"kind('.*_test', rdeps(//..., //lib/utils:utils))\""
+      bazel ${ANSWER} "kind('.*_test', rdeps(//..., //lib/utils:utils))"
+
+  - wait: ~
 
   # Final Results
   - label: ":trophy: Quiz Complete"
     command: |
       cat <<EOF | buildkite-agent annotate --style success --context results
       # 🎉 Quiz Complete!
-      
+
       Check the annotations above to see how you did on each question.
-      
+
       ## Key Takeaways
-      
+
       - \`bazel test\` - Run tests
       - \`bazel run\` - Build and execute binaries
       - \`bazel build\` - Build targets
       - \`bazel query\` - Explore the build graph
-      
+
       ## Query Functions
-      
+
       - \`deps(target)\` - What does this target depend on?
       - \`rdeps(scope, target)\` - What depends on this target? (impact analysis)
       - \`kind(pattern, scope)\` - Filter targets by type (e.g., tests, binaries)
-      
+
       ## Smart CI/CD Pattern
-      
+
       \`\`\`bash
       # Find affected tests
       AFFECTED=\$$(bazel query "kind('.*_test', rdeps(//..., //lib/utils:utils))")
-      
+
       # Only run those tests
       bazel test \$$AFFECTED
       \`\`\`
-      
+
       This is how Bazel enables intelligent, fast CI/CD pipelines!
-      
+
       ---
-      
+
       Want to learn more? Check out the interactive tutor: \`./tutor\`
       EOF
