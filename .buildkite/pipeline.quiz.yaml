@@ -45,8 +45,8 @@ steps:
 
       ANSWER=$(buildkite-agent meta-data get q1-answer)
 
-      echo "Running: bazel ${ANSWER} \"kind('.*_test', //...)\""
-      bazel ${ANSWER} "kind('.*_test', //...)" --test_output=errors
+      echo "Running: bazel $$ANSWER \"kind('.*_test', //...)\""
+      bazel $$ANSWER "kind('.*_test', //...)" --test_output=errors
 
   - wait: ~
 
@@ -76,8 +76,8 @@ steps:
 
       ANSWER=$(buildkite-agent meta-data get q2-answer)
 
-      echo "Running: bazel ${ANSWER} //services/hello:hello"
-      bazel ${ANSWER} //services/hello:hello
+      echo "Running: bazel $$ANSWER //services/hello:hello"
+      bazel $$ANSWER //services/hello:hello
 
   - wait: ~
 
@@ -107,8 +107,8 @@ steps:
 
       ANSWER=$(buildkite-agent meta-data get q3-answer)
 
-      echo "Running: bazel ${ANSWER} \"deps(//services/hello:hello)\""
-      bazel ${ANSWER} "deps(//services/hello:hello)"
+      echo "Running: bazel $$ANSWER \"deps(//services/hello:hello)\""
+      bazel $$ANSWER "deps(//services/hello:hello)"
 
   - wait: ~
 
@@ -138,8 +138,8 @@ steps:
 
       ANSWER=$(buildkite-agent meta-data get q4-answer)
 
-      echo "Running: bazel ${ANSWER} \"deps(//lib/utils:utils)\""
-      bazel ${ANSWER} "deps(//lib/utils:utils)"
+      echo "Running: bazel $$ANSWER \"deps(//lib/utils:utils)\""
+      bazel $$ANSWER "deps(//lib/utils:utils)"
 
   - wait: ~
 
@@ -169,8 +169,8 @@ steps:
 
       ANSWER=$(buildkite-agent meta-data get q5-answer)
 
-      echo "Running: bazel ${ANSWER} \"kind('.*_test', rdeps(//..., //lib/utils:utils))\""
-      bazel ${ANSWER} "kind('.*_test', rdeps(//..., //lib/utils:utils))"
+      echo "Running: bazel $$ANSWER \"kind('.*_test', rdeps(//..., //lib/utils:utils))\""
+      bazel $$ANSWER "kind('.*_test', rdeps(//..., //lib/utils:utils))"
 
   - wait: ~
 
