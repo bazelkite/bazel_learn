@@ -1,15 +1,12 @@
 package main
 
 import (
+	"bazel_training_example/lib/utils"
 	"fmt"
 )
 
-func greet(name string) string {
-	return fmt.Sprintf("Hello, %s!", name)
-}
-
 func main() {
-	message := greet("Buildkite")
+	message := utils.Greet("Buildkite")
 	fmt.Println(message)
 	fmt.Println("This is the hello service!")
 }

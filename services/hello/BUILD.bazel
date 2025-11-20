@@ -5,6 +5,7 @@ go_library(
     srcs = ["main.go"],
     importpath = "bazel_training_example/services/hello",
     visibility = ["//visibility:private"],
+    deps = ["//lib/utils"],
 )
 
 go_binary(

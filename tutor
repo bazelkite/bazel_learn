@@ -1,0 +1,443 @@
+#!/bin/bash
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+MAGENTA='\033[0;35m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+BOLD='\033[1m'
+
+# Track progress
+TOTAL_EXERCISES=10
+COMPLETED=0
+
+# Helper functions
+print_header() {
+    echo ""
+    echo -e "${CYAN}═══════════════════════════════════════════════════════════${NC}"
+    echo -e "${BOLD}$1${NC}"
+    echo -e "${CYAN}═══════════════════════════════════════════════════════════${NC}"
+    echo ""
+}
+
+print_exercise() {
+    COMPLETED=$((COMPLETED + 1))
+    echo ""
+    echo -e "${MAGENTA}┌─────────────────────────────────────────────────────────┐${NC}"
+    echo -e "${MAGENTA}│${NC} ${BOLD}Exercise $COMPLETED/$TOTAL_EXERCISES: $1${NC}"
+    echo -e "${MAGENTA}└─────────────────────────────────────────────────────────┘${NC}"
+    echo ""
+}
+
+print_success() {
+    echo -e "${GREEN}✓ $1${NC}"
+}
+
+print_error() {
+    echo -e "${RED}✗ $1${NC}"
+}
+
+print_hint() {
+    echo -e "${YELLOW}💡 Hint: $1${NC}"
+}
+
+print_info() {
+    echo -e "${BLUE}ℹ  $1${NC}"
+}
+
+wait_for_enter() {
+    echo ""
+    echo -e "${CYAN}Press ENTER to continue (or type 'exit' to quit)...${NC}"
+    read response
+    if [[ "$response" == "exit" || "$response" == "quit" ]]; then
+        echo ""
+        echo -e "${YELLOW}Exiting tutorial. Thanks for participating!${NC}"
+        exit 0
+    fi
+    clear
+}
+
+ask_question() {
+    local question="$1"
+    local correct_answer="$2"
+    local hint="$3"
+
+    echo -e "${BOLD}$question${NC}"
+    echo ""
+    echo -n "Your answer: "
+    read user_answer
+
+    if [[ "$user_answer" == "$correct_answer" ]]; then
+        print_success "Correct!"
+        return 0
+    else
+        print_error "Not quite. The answer is: $correct_answer"
+        if [[ -n "$hint" ]]; then
+            print_hint "$hint"
+        fi
+        return 1
+    fi
+}
+
+run_command_challenge() {
+    local description="$1"
+    local correct_command="$2"
+    local hint="$3"
+    local max_attempts=3
+    local attempt=1
+
+    echo -e "${BOLD}Task: $description${NC}"
+    echo ""
+
+    while [ $attempt -le $max_attempts ]; do
+        echo -n "$ "
+        read user_command
+        
+        # Check for exit command
+        if [[ "$user_command" == "exit" || "$user_command" == "quit" ]]; then
+            echo ""
+            echo -e "${YELLOW}Exiting tutorial. Thanks for participating!${NC}"
+            exit 0
+        fi
+        
+        # Clean up the command
+        user_command=$(echo "$user_command" | xargs)
+        
+        # Security check: only allow bazel commands
+        if [[ ! "$user_command" =~ ^bazel[[:space:]] ]]; then
+            print_error "Only 'bazel' commands are allowed in this tutorial!"
+            attempt=$((attempt + 1))
+            continue
+        fi
+
+        # Normalize both commands for comparison - remove all quotes and extra spaces
+        normalized_user=$(echo "$user_command" | tr -d "\"'" | sed 's/  */ /g' | xargs)
+        normalized_correct=$(echo "$correct_command" | tr -d "\"'" | sed 's/  */ /g' | xargs)
+
+        if [[ "$normalized_user" == "$normalized_correct" ]]; then
+            print_success "Perfect! Running the command..."
+            echo ""
+            # Run the correct command (which is properly formatted) instead of user input
+            eval "$correct_command"
+            echo ""
+            print_success "Exercise complete!"
+            return 0
+        else
+            print_error "That's not quite right."
+
+            if [ $attempt -lt $max_attempts ]; then
+                if [ $attempt -eq 1 ] && [[ -n "$hint" ]]; then
+                    print_hint "$hint"
+                elif [ $attempt -eq 2 ]; then
+                    print_hint "The correct command is: $correct_command"
+                fi
+                echo ""
+                echo "Try again (attempt $((attempt + 1))/$max_attempts):"
+            fi
+        fi
+
+        attempt=$((attempt + 1))
+    done
+
+    print_error "Out of attempts. The correct command was:"
+    echo -e "${GREEN}$correct_command${NC}"
+    echo ""
+    echo "Let me run it for you:"
+    eval "$correct_command"
+    return 1
+}
+
+check_bazel() {
+    if ! command -v bazel &> /dev/null; then
+        print_error "Bazel is not installed!"
+        echo ""
+        echo "Please install Bazelisk first:"
+        echo "  brew install bazelisk"
+        echo ""
+        exit 1
+    fi
+}
+
+# Start the tutorial
+clear
+cat << "EOF"
+╔════════════════════════════════════════════════════════════════╗
+║                                                                ║
+║        🎓 Interactive Bazel Training Tutorial 🎓               ║
+║                                                                ║
+║        Learn Bazel by doing - fix commands, explore,          ║
+║        and see the power of Bazel + Buildkite!                ║
+║                                                                ║
+╚════════════════════════════════════════════════════════════════╝
+EOF
+
+echo ""
+echo "Welcome! This interactive tutorial will teach you Bazel through"
+echo "hands-on exercises. You'll fix broken commands, explore the codebase,"
+echo "and see how Bazel powers intelligent CI/CD."
+echo ""
+echo "Ready to start?"
+wait_for_enter
+
+check_bazel
+
+clear
+
+# Exercise 1: Basic Bazel Version
+print_header "🏁 Exercise 1: Getting Started"
+print_exercise "Check Bazel Version"
+
+echo "Let's start simple. Bazel has a 'version' command."
+echo "Try to check what version of Bazel you have installed."
+echo ""
+
+run_command_challenge \
+    "Check the Bazel version" \
+    "bazel version" \
+    "The command structure is: bazel [command]"
+
+wait_for_enter
+
+# Exercise 2: List All Targets
+print_header "🔍 Exercise 2: Discovering Targets"
+print_exercise "List All Targets"
+
+echo "Bazel uses a 'query' command to explore your workspace."
+echo "The pattern '//...' means 'everything in the workspace'."
+echo ""
+
+run_command_challenge \
+    "List all Bazel targets in this workspace" \
+    "bazel query //..." \
+    "Use: bazel query //..."
+
+wait_for_enter
+
+# Exercise 3: Fix the Broken Command
+print_header "🐛 Exercise 3: Fix the Bug"
+print_exercise "Spot the Error"
+
+echo "A teammate tried to run the utils test but got an error:"
+echo ""
+echo -e "${RED}$ bazel run //libs/utils:utils_test${NC}"
+echo -e "${RED}ERROR: no such package 'libs/utils'${NC}"
+echo ""
+echo "There are TWO mistakes in this command. Can you fix it?"
+echo ""
+print_hint "Check the directory name (singular vs plural) and the right bazel command for tests"
+
+run_command_challenge \
+    "Run the utils test correctly" \
+    "bazel test //lib/utils:utils_test" \
+    "It's 'lib' not 'libs', and use 'bazel test' not 'bazel run' for tests"
+
+wait_for_enter
+
+# Exercise 4: Find All Tests
+print_header "🧪 Exercise 4: Query Magic"
+print_exercise "Find All Tests"
+
+echo "Bazel query has powerful filters using the 'kind()' function."
+echo "You can find all targets of a specific type."
+echo ""
+echo "The pattern for tests is: kind('.*_test', //...)"
+echo ""
+
+run_command_challenge \
+    "Find all test targets in the workspace" \
+    "bazel query \"kind('.*_test', //...)\"" \
+    "Use: bazel query \"kind('.*_test', //...)\""
+
+wait_for_enter
+
+# Exercise 5: Find All Binaries
+print_header "📦 Exercise 5: More Queries"
+print_exercise "Find All Binaries"
+
+echo "Now let's find all the binaries (services) we can run."
+echo "The pattern is similar, but use '.*_binary' instead."
+echo ""
+
+run_command_challenge \
+    "Find all binary targets" \
+    "bazel query \"kind('.*_binary', //...)\"" \
+    "Replace '_test' with '_binary'"
+
+wait_for_enter
+
+# Exercise 6: Run a Service
+print_header "🚀 Exercise 6: Running Services"
+print_exercise "Run the Hello Service"
+
+echo "You found the binaries! Now let's run one."
+echo "The hello service is at: //services/hello:hello"
+echo ""
+
+run_command_challenge \
+    "Run the hello service" \
+    "bazel run //services/hello:hello" \
+    "Use: bazel run [target]"
+
+wait_for_enter
+
+# Exercise 7: Dependency Analysis
+print_header "🕸️  Exercise 7: Understanding Dependencies"
+print_exercise "What Does Hello Depend On?"
+
+echo "The real power of Bazel is understanding dependencies."
+echo "Use the 'deps()' function to see what a target depends on."
+echo ""
+echo "Format: bazel query \"deps([target])\""
+echo ""
+
+run_command_challenge \
+    "Show all dependencies of the hello service" \
+    "bazel query \"deps(//services/hello:hello)\"" \
+    "Use: bazel query \"deps(//services/hello:hello)\""
+
+wait_for_enter
+
+# Exercise 8: Reverse Dependencies
+print_header "🔄 Exercise 8: Impact Analysis"
+print_exercise "What Depends on Utils?"
+
+echo "Now the REALLY powerful one: reverse dependencies (rdeps)."
+echo "This answers: 'If I change X, what else is affected?'"
+echo ""
+echo "If you change lib/utils, what services would be affected?"
+echo "Format: bazel query \"rdeps(//..., [target])\""
+echo ""
+
+run_command_challenge \
+    "Find what depends on the utils library" \
+    "bazel query \"rdeps(//..., //lib/utils:utils)\"" \
+    "Use: bazel query \"rdeps(//..., //lib/utils:utils)\""
+
+wait_for_enter
+
+# Exercise 9: Smart Testing
+print_header "🎯 Exercise 9: Selective Testing"
+print_exercise "Test Only What's Affected"
+
+echo "Combine query with testing for SMART CI/CD!"
+echo ""
+echo "Scenario: You changed //lib/utils:utils"
+echo "Question: How do you test ONLY what's affected?"
+echo ""
+echo "You need to:"
+echo "1. Find what depends on utils (rdeps)"
+echo "2. Filter to just tests (kind)"
+echo ""
+echo "Hint: You can nest queries like: kind('pattern', rdeps(...))"
+echo ""
+
+run_command_challenge \
+    "Find all tests affected by changes to utils" \
+    "bazel query \"kind('.*_test', rdeps(//..., //lib/utils:utils))\"" \
+    "Combine: bazel query \"kind('.*_test', rdeps(//..., //lib/utils:utils))\""
+
+echo ""
+print_success "This is the foundation of dynamic Buildkite pipelines!"
+echo ""
+print_info "In Buildkite, we use this to generate pipeline steps dynamically:"
+echo ""
+cat << 'EOF'
+  # Find affected tests
+  AFFECTED_TESTS=$(bazel query "kind('.*_test', rdeps(//..., $CHANGED_FILES))")
+
+  # Generate pipeline with ONLY those tests
+  for test in $AFFECTED_TESTS; do
+    echo "  - command: bazel test $test" >> pipeline.yml
+  done
+EOF
+
+wait_for_enter
+
+# Exercise 10: Build Everything
+print_header "🏗️  Exercise 10: Build & Cache"
+print_exercise "See Bazel's Caching in Action"
+
+echo "Let's finish by seeing Bazel's caching magic."
+echo ""
+echo "First, let's build everything from scratch:"
+echo ""
+
+run_command_challenge \
+    "Build all targets in the workspace" \
+    "bazel build //..." \
+    "Use: bazel build //..."
+
+echo ""
+print_success "First build complete!"
+echo ""
+echo "Now let's build again and watch how fast it is with caching:"
+echo ""
+
+run_command_challenge \
+    "Build everything again (watch the cache work!)" \
+    "bazel build //..." \
+    "Same command: bazel build //..."
+
+echo ""
+print_success "Everything was cached! That's the power of Bazel!"
+echo ""
+print_info "In CI with remote caching, your team shares these cached artifacts."
+print_info "This means: if someone else built it, you don't have to!"
+
+wait_for_enter
+
+# Final Summary
+clear
+cat << "EOF"
+╔════════════════════════════════════════════════════════════════╗
+║                                                                ║
+║               🎉 Congratulations! 🎉                           ║
+║                                                                ║
+║          You've completed the Bazel tutorial!                  ║
+║                                                                ║
+╚════════════════════════════════════════════════════════════════╝
+EOF
+
+echo ""
+echo -e "${BOLD}What You Learned:${NC}"
+echo ""
+echo "  ✓ Basic Bazel commands (version, query, build, test, run)"
+echo "  ✓ How to explore a Bazel workspace"
+echo "  ✓ Finding targets with query patterns"
+echo "  ✓ Understanding dependencies with deps()"
+echo "  ✓ Impact analysis with rdeps()"
+echo "  ✓ Combining queries for smart testing"
+echo "  ✓ Bazel's intelligent caching"
+echo ""
+echo -e "${BOLD}Key Commands to Remember:${NC}"
+echo ""
+echo "  bazel query //...                              List all targets"
+echo "  bazel query \"kind('.*_test', //...)\"           Find all tests"
+echo "  bazel query \"deps(//services/hello:hello)\"     What X depends on"
+echo "  bazel query \"rdeps(//..., //lib/utils:utils)\"  What depends on X"
+echo "  bazel test //...                               Test everything"
+echo "  bazel run //services/hello:hello               Run a service"
+echo ""
+echo -e "${BOLD}The Buildkite + Bazel Magic:${NC}"
+echo ""
+echo "Use bazel query to generate dynamic pipelines that only build/test"
+echo "what's affected by changes. This is what makes Buildkite + Bazel"
+echo "so powerful for large monorepos!"
+echo ""
+echo -e "${CYAN}Example:${NC}"
+echo '  AFFECTED=$(bazel query "rdeps(//..., set($CHANGED_FILES))")'
+echo '  bazel test $AFFECTED  # Only test what changed!'
+echo ""
+echo -e "${BOLD}Next Steps:${NC}"
+echo ""
+echo "  📖 Read: BAZEL_BUILDKITE_TRAINING.md"
+echo "  📊 Compare: PIPELINE_COMPARISON.md"
+echo "  🚀 Try: Upload both pipelines to Buildkite"
+echo "  💪 Practice: Modify code and use rdeps() to find impact"
+echo ""
+echo -e "${GREEN}You're now ready to help customers with Bazel + Buildkite!${NC}"
+echo ""
