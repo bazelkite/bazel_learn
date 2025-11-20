@@ -1,5 +1,5 @@
 module(
-    name = "bazel_training_example",
+    name = "bazel_learn",
     version = "0.0.1",
 )
 

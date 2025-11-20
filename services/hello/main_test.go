@@ -1,7 +1,7 @@
 package main
 
 import (
-	"bazel_training_example/lib/utils"
+	"bazel_learn/lib/utils"
 	"testing"
 )
 

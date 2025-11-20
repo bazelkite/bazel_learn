@@ -1,216 +1,57 @@
-## Bazel-Powered Pipeline (WITH Bazel)
-## This demonstrates Bazel's intelligence with dynamic pipeline generation
-
 steps:
-  - label: ":bazel: Setup & Verify"
+  - label: ":bazel: Discover & Test"
     command: |
-      echo "--- :bazel: Bazel version"
-      bazel version
-      
-      echo "--- :package: List all Bazel targets"
-      bazel query //...
-      
-      echo "--- :mag: Query all test targets"
+      echo "--- Discovering all test targets"
       bazel query "kind('.*_test', //...)"
 
-  - wait
+      echo "--- Running all tests"
+      bazel test //... --test_output=errors
 
-  - label: ":pipeline: Generate Dynamic Pipeline"
+  - wait: ~
+
+  - label: ":bazel: Build & Run Services"
     command: |
-      #!/bin/bash
-      set -euo pipefail
-      
-      echo "--- :thinking_face: Analyzing codebase with Bazel"
-      
-      # Find all test targets using Bazel query
-      echo "Finding all test targets..."
-      ALL_TESTS=$$(bazel query "kind('.*_test', //...)" 2>/dev/null || echo "")
-      
-      # Find all binary targets
-      echo "Finding all binary targets..."
-      ALL_BINARIES=$$(bazel query "kind('.*_binary', //...)" 2>/dev/null || echo "")
-      
-      echo "--- :pipeline: Generating dynamic pipeline"
-      
-      # Start building the pipeline
-      cat > dynamic-pipeline.yml <<'PIPELINE_START'
-      steps:
-        - label: ":test_tube: Run All Tests (Parallel)"
-          command: |
-            echo "Running all tests with Bazel..."
-            bazel test //... --test_output=errors
-          
-        - wait
-        
-      PIPELINE_START
-      
-      # Add individual test steps for visibility
-      echo "  - label: ':bar_chart: Test Results Breakdown'" >> dynamic-pipeline.yml
-      echo "    command: |" >> dynamic-pipeline.yml
-      echo "      echo '--- :test_tube: Individual Test Results'" >> dynamic-pipeline.yml
-      
-      if [ -n "$$ALL_TESTS" ]; then
-        for test in $$ALL_TESTS; do
-          echo "      echo 'Testing: $$test'" >> dynamic-pipeline.yml
-          echo "      bazel test $$test --test_output=errors || true" >> dynamic-pipeline.yml
-        done
-      fi
-      
-      # Add build steps
-      cat >> dynamic-pipeline.yml <<'PIPELINE_BUILD'
-      
-        - wait
-        
-        - label: ":package: Build All Binaries"
-          command: |
-            echo "Building all binaries with Bazel..."
-            bazel build //services/...
-            
-            echo "--- :file_folder: Build outputs"
-            find bazel-bin/services -name "hello" -o -name "goodbye" | while read binary; do
-              echo "Built: $binary"
-              ls -lh "$binary"
-            done
-      
-        - wait
-        
-        - label: ":rocket: Run Services"
-          command: |
-            echo "--- :wave: Running hello service"
-            bazel run //services/hello:hello
-            
-            echo ""
-            echo "--- :wave: Running goodbye service"
-            bazel run //services/goodbye:goodbye
-      
-        - wait
-        
-        - label: ":mag: Dependency Analysis"
-          command: |
-            echo "--- :chart_with_upwards_trend: Analyzing dependencies"
-            
-            echo "Dependencies of hello service:"
-            bazel query "deps(//services/hello:hello)" --output package
-            
-            echo ""
-            echo "Dependencies of goodbye service:"
-            bazel query "deps(//services/goodbye:goodbye)" --output package
-            
-            echo ""
-            echo "What depends on lib/utils?"
-            bazel query "rdeps(//..., //lib/utils:utils)" 2>/dev/null || echo "None (or service doesn't use it)"
-      
-        - wait
-        
-        - label: ":memo: Bazel Build Summary"
-          command: |
-            cat <<EOF | buildkite-agent annotate --style success --context bazel-summary
-            ## Bazel Build Summary
-            
-            ### What Happened
-            - ✅ **Intelligent caching**: Only rebuilt what changed
-            - ✅ **Parallel execution**: Tests ran concurrently
-            - ✅ **Dependency tracking**: Bazel knows what depends on what
-            - ✅ **Hermetic builds**: Same results everywhere
-            - ✅ **Dynamic generation**: Pipeline adapted to codebase
-            
-            ### Advantages of Bazel
-            - ✅ **Incremental builds**: Only rebuilds affected targets
-            - ✅ **Remote caching**: Can share build artifacts across team
-            - ✅ **Dependency analysis**: \`bazel query\` shows impact of changes
-            - ✅ **Multi-language**: One build system for all languages
-            - ✅ **Scalability**: Handles massive monorepos
-            
-            ### Build Intelligence
-            \`\`\`
-            # Only test what's affected by changes:
-            bazel query "rdeps(//..., //lib/utils:utils)"
-            
-            # Find all tests:
-            bazel query "kind('.*_test', //...)"
-            
-            # Visualize dependencies:
-            bazel query "deps(//services/hello:hello)" --output graph
-            \`\`\`
-            
-            ### Performance
-            - **First build**: Downloads toolchains, builds everything
-            - **Subsequent builds**: Only rebuilds changed targets (seconds!)
-            - **With remote cache**: Even faster across team
-            
-            ---
-            💡 **This pipeline was generated dynamically using \`bazel query\`**
-            EOF
-      PIPELINE_BUILD
-      
-      echo "--- :rocket: Uploading dynamic pipeline"
-      cat dynamic-pipeline.yml
-      buildkite-agent pipeline upload dynamic-pipeline.yml
+      echo "--- Building all services"
+      bazel build //services/...
 
-  - wait
+      echo "--- Running hello service"
+      bazel run //services/hello:hello
 
-  - label: ":chart_with_upwards_trend: Compare: Bazel vs Traditional"
+      echo "--- Running goodbye service"
+      bazel run //services/goodbye:goodbye
+
+  - wait: ~
+
+  - label: ":mag: Dependency Intelligence"
     command: |
-      cat <<EOF | buildkite-agent annotate --style info --context comparison
-      ## Bazel vs Traditional Build: Side-by-Side
-      
-      | Aspect | Traditional (pipeline.yaml) | Bazel (pipeline.bazel.yaml) |
-      |--------|---------------------------|---------------------------|
-      | **Caching** | ❌ None | ✅ Intelligent caching |
-      | **Incremental** | ❌ Rebuilds everything | ✅ Only changed targets |
-      | **Dependency Awareness** | ❌ No | ✅ Full dependency graph |
-      | **Maintenance** | ❌ Manual updates | ✅ Self-adapting |
-      | **Multi-language** | ❌ Separate tools | ✅ Unified system |
-      | **Reproducibility** | ⚠️ Environment-dependent | ✅ Hermetic builds |
-      | **Scalability** | ❌ Poor | ✅ Excellent |
-      | **Query Capabilities** | ❌ None | ✅ \`bazel query\` |
-      
-      ### Time Savings Example
-      
-      **Scenario**: Change one file in \`lib/utils\`
-      
-      **Traditional Build**:
-      - Tests all 3 packages (even unaffected ones)
-      - Builds all 2 services (even unaffected ones)
-      - Time: ~2-3 minutes (every time)
-      
-      **Bazel Build**:
-      - \`bazel query "rdeps(//..., //lib/utils:utils)"\` finds affected targets
-      - Only tests/builds affected targets
-      - Uses cached results for everything else
-      - Time: ~10-30 seconds (with cache)
-      
-      ### Dynamic Pipeline Generation
-      
-      The Bazel pipeline uses \`bazel query\` to discover targets automatically:
-      
-      \`\`\`bash
-      # Find all tests dynamically
-      ALL_TESTS=\$$(bazel query "kind('.*_test', //...)")
-      
-      # Generate pipeline steps for each test
-      for test in \$$ALL_TESTS; do
-        echo "  - command: bazel test \$$test" >> pipeline.yml
-      done
-      \`\`\`
-      
-      **Result**: Pipeline adapts as you add/remove services. No manual updates needed!
-      
-      ---
-      
-      ### Try It Yourself
-      
-      \`\`\`bash
-      # See all targets
-      bazel query //...
-      
-      # Find what depends on utils library
+      echo "--- What depends on lib/utils?"
       bazel query "rdeps(//..., //lib/utils:utils)"
-      
-      # Show dependency graph
-      bazel query "deps(//services/hello:hello)" --output graph
-      
-      # Only test affected targets (simulating a change)
-      bazel test \$$(bazel query "rdeps(//..., //lib/utils:utils)")
+
+      echo ""
+      echo "--- All test targets"
+      bazel query "kind('.*_test', //...)"
+
+  - wait: ~
+
+  - label: ":memo: Summary"
+    command: |
+      cat <<EOF | buildkite-agent annotate --style success
+      ## Bazel Build: What Just Happened?
+
+      ✅ **Intelligent caching** - only rebuilt what changed
+      ✅ **Parallel execution** - tests ran concurrently
+      ✅ **Dependency tracking** - knows exactly what's affected by changes
+      ✅ **Dynamic discovery** - automatically finds all targets (no manual updates!)
+
+      ### The Magic: \`bazel query\`
+
+      \`\`\`bash
+      # Find what depends on a library
+      bazel query "rdeps(//..., //lib/utils:utils)"
+
+      # Test only affected targets
+      bazel test \$$(bazel query "kind('.*_test', rdeps(//..., //lib/utils:utils))")
       \`\`\`
+
+      This is how you build intelligent CI pipelines!
       EOF
