@@ -7,7 +7,7 @@ Get up and running in 5 minutes.
 We have a script which will check your environment for the required tools.
 
 ```bash
-./setup.sh
+./setup
 ```
 
 ## 1. Install Bazelisk
