@@ -1,3 +1,10 @@
+cache:
+  paths:
+    - "bazel-bin"
+    - "bazel-out"
+    - "bazel-testlogs"
+  size: "50g"
+
 steps:
   - label: ":bazel: Discover & Test"
     command: |
