@@ -2,6 +2,7 @@
 bazel-*
 .bazel*
 !.bazelversion
+!MODULE.bazel.lock
 
 # Go
 *.exe
