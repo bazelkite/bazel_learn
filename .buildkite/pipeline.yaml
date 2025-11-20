@@ -1,12 +1,12 @@
 steps:
-  - block: "Run the non-Bazel pipeline"
-    depends_on: []
-  - label: ":zzz: Trigger the non-Bazel pipeline"
-    trigger: bazel-lunch-and-learn-non-bazel
-    depends_on: []
+  - group: "Sans Bazel"
+    steps:
+      - block: "Run the non-Bazel pipeline"
+      - label: ":zzz: Trigger the non-Bazel pipeline"
+        trigger: bazel-lunch-and-learn-non-bazel
 
-  - block: "Run the Bazel pipeline"
-    depends_on: []
-  - label: ":bazel: Trigger the Bazel pipeline"
-    trigger: bazel-lunch-and-learn-bazel
-    depends_on: []
+  - group: "Avec Bazel"
+    steps:
+      - block: "Run the Bazel pipeline"
+      - label: ":bazel: Trigger the Bazel pipeline"
+        trigger: bazel-lunch-and-learn-bazel
