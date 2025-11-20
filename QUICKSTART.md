@@ -98,5 +98,5 @@ bazel clean                         # Clean build outputs
 ## Next Steps
 
 - **Try the interactive tutorial**: `./tutor`
-- **Compare pipelines**: Look at `.buildkite/pipeline.yaml` vs `.buildkite/pipeline.bazel.yaml`
+- **Compare pipelines**: Look at [.buildkite/pipeline.yaml](.buildkite/pipeline.yaml) vs [.buildkite/pipeline.bazel.yaml](.buildkite/pipeline.bazel.yaml)
 - **Full documentation**: See [README.md](README.md)
